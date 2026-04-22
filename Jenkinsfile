@@ -1,21 +1,42 @@
 pipeline {
     agent any
-    environment {
-        DOCKER_HUB_USER = 'your_username'
-        IMAGE_NAME = 'my-devops-app'
+
+    tools {
+        maven 'Maven'
+        jdk 'JDK21'
     }
+
     stages {
-        stage('Build Image') {
+
+        stage('Checkout') {
             steps {
-                sh "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_ID} ."
+                git branch: 'main', url:'https://github.com/Naveen04jan/ven.git',
+                credentialsId: 'github-token'
             }
         }
-        stage('Push to Docker Hub') {
+
+        stage('Build') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker_hub_login', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-                    sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_ID}"
-                }
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn package'
+            }
+        
+        
+        }
+        stage('Run Application') {
+            steps {
+                sh 'mvn exec:java -Dexec.mainClass="com.example.app.App"'
             }
         }
     }
